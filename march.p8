@@ -126,7 +126,7 @@ terrainmap_colors = {1,  1,  1,  1,  1,  1,  1, -- deep ocean
 
 
 -- marchingsquare definition
-off = 0
+marching_sprite_off = 0
 
 function sort(a)
     for i=1,#a do
@@ -138,10 +138,10 @@ function sort(a)
     end
 end
 
-function getmarchingsquareat(tl, tr, bl, br)
+function set_palette_and_get_marching_sprite(tl, tr, bl, br)
 
     local borders = {tl, tr, bl, br}
-    
+
     sort(borders)
 
     local t1 = borders[1]
@@ -150,6 +150,7 @@ function getmarchingsquareat(tl, tr, bl, br)
     for i=2,4 do
         if borders[i] != t1 then
             t2 = borders[i]
+            break
         end
     end
 
@@ -158,7 +159,7 @@ function getmarchingsquareat(tl, tr, bl, br)
     end
 
     -- Remap outline
-    pal(11,t1)
+    pal(11,t2)
 
     -- Remap outside
     pal(9,t1)
@@ -171,21 +172,16 @@ function getmarchingsquareat(tl, tr, bl, br)
     bl = bl == t2 and 1 or 0
     br = br == t2 and 1 or 0
 
-    return (16 + (tl + shl(tr,1) + shl(br,2) + shl(bl,3))+off)
+    return (16 + (tl + shl(tr,1) + shl(br,2) + shl(bl,3))+marching_sprite_off)
 end
 
-function settilemap()
-	for xm=1,cave._w do
-		for ym=1,cave._h do
-			mset(xm,ym,getmarchingsquareat(xm,ym)+off)
-		end
-	end
-end
+
+map_size = 64
 
 noise_map = {}
-for row = 0, 128 do
+for row = 0, map_size do
     noise_map[row] = {}
-    for column = 1, 128 do
+    for column = 0, map_size do
         noise_map[row][column] = 0
     end
 end
@@ -194,8 +190,8 @@ function gen_map()
   -- generate some terrain
   local noisedx = rnd(1024)
   local noisedy = rnd(1024)
-  for x=0,127 do
-    for y=0,127 do
+  for x=0,map_size-1 do
+    for y=0,map_size-1 do
       local octaves = 5
       local freq = .003
       local max_amp = 0
@@ -232,10 +228,10 @@ function _init()
 end
 
 function _update()
-	if (btn(0)) camx-=4
-	if (btn(1)) camx+=4
-	if (btn(2)) camy-=4
-	if (btn(3)) camy+=4
+	if (btn(0)) camx-=1
+	if (btn(1)) camx+=1
+	if (btn(2)) camy-=1
+	if (btn(3)) camy+=1
 end
 
 function _draw()
@@ -247,22 +243,43 @@ function _draw()
 	end
 
     -- Draw the marching square tiles
-    for x=-1,16 do
+    for x=-3,18 do
       x += flr(camx/8)
-      for y=-1,16 do
+      for y=-3,18 do
         y += flr(camy/8)
+
         x = x < 0 and 0 or x
+        x = x > map_size-1 and map_size-1 or x
         y = y < 0 and 0 or y
-        local n = getmarchingsquareat(noise_map[x][y],
-                                      noise_map[x+1][y],
-                                      noise_map[x][y+1],
-                                      noise_map[x+1][y+1]
-                                      )+off
-        spr(n, x*8, y*8)
+        y = y > map_size-1 and map_size-1 or y
+
+        local n = set_palette_and_get_marching_sprite(
+                      noise_map[x][y],
+                      noise_map[x+1][y],
+                      noise_map[x][y+1],
+                      noise_map[x+1][y+1]
+                      )+marching_sprite_off
+
+        dx = (x*8 - camx-64) / 64
+        dy = (y*8 - camy-64) / 64
+
+        magSq = dx * dx + dy * dy
+
+        scale = -10 * magSq
+
+        dx = dx * scale
+        dy = dy * scale
+
+        final_x = x*8+dx
+        final_y = y*8+dy
+
+        spr(n, final_x, final_y)
       end
     end
 
-	camera(0,0)
+    camera(0,0)
+
+    circ(64, 64, 64, 0)
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
