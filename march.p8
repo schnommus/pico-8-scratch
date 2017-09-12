@@ -242,10 +242,12 @@ function _draw()
 		camera(camx,camy)
 	end
 
+    iter_order = {-3, 18, -2, 17, -1, 16, 0, 15, 1, 14, 2, 13, 3, 12, 4, 11, 5, 10, 6, 9, 7, 8}
+
     -- Draw the marching square tiles
-    for x=-3,18 do
+    for k1,x in pairs(iter_order) do
       x += flr(camx/8)
-      for y=-3,18 do
+      for k2,y in pairs(iter_order) do
         y += flr(camy/8)
 
         x = x < 0 and 0 or x
@@ -265,7 +267,7 @@ function _draw()
 
         magSq = dx * dx + dy * dy
 
-        scale = -10 * magSq
+        scale = -15 * magSq
 
         dx = dx * scale
         dy = dy * scale
