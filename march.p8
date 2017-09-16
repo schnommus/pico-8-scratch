@@ -2,10 +2,10 @@ pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
 
--- Simplex Noise Example
--- by Anthony DiGirolamo
+-- simplex noise example
+-- by anthony digirolamo
 
-local Perms = {
+local perms = {
    151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225,
    140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148,
    247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32,
@@ -24,28 +24,28 @@ local Perms = {
    222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180
 }
 
--- make Perms 0 indexed
+-- make perms 0 indexed
 for i = 0, 255 do
-   Perms[i]=Perms[i+1]
+   perms[i]=perms[i+1]
 end
--- Perms[256]=nil
+-- perms[256]=nil
 
--- The above, mod 12 for each element --
-local Perms12 = {}
+-- the above, mod 12 for each element --
+local perms12 = {}
 
 for i = 0, 255 do
-   local x = Perms[i] % 12
-   Perms[i + 256], Perms12[i], Perms12[i + 256] = Perms[i], x, x
+   local x = perms[i] % 12
+   perms[i + 256], perms12[i], perms12[i + 256] = perms[i], x, x
 end
 
--- Gradients for 2D, 3D case --
-local Grads3 = {
+-- gradients for 2d, 3d case --
+local grads3 = {
    { 1, 1, 0 }, { -1, 1, 0 }, { 1, -1, 0 }, { -1, -1, 0 },
    { 1, 0, 1 }, { -1, 0, 1 }, { 1, 0, -1 }, { -1, 0, -1 },
    { 0, 1, 1 }, { 0, -1, 1 }, { 0, 1, -1 }, { 0, -1, -1 }
 }
 
-for row in all(Grads3) do
+for row in all(grads3) do
    for i=0,2 do
       row[i]=row[i+1]
    end
@@ -53,38 +53,38 @@ for row in all(Grads3) do
 end
 
 for i=0,11 do
-   Grads3[i]=Grads3[i+1]
+   grads3[i]=grads3[i+1]
 end
--- Grads3[12]=nil
-function GetN2d (bx, by, x, y)
+-- grads3[12]=nil
+function getn2d (bx, by, x, y)
    local t = .5 - x * x - y * y
-   local index = Perms12[bx + Perms[by]]
-   return max(0, (t * t) * (t * t)) * (Grads3[index][0] * x + Grads3[index][1] * y)
+   local index = perms12[bx + perms[by]]
+   return max(0, (t * t) * (t * t)) * (grads3[index][0] * x + grads3[index][1] * y)
 end
 
 ---
 -- @param x
 -- @param y
--- @return Noise value in the range [-1, +1]
-function Simplex2D (x, y)
-   -- 2D skew factors:
-   -- F = (math.sqrt(3) - 1) / 2
-   -- G = (3 - math.sqrt(3)) / 6
-   -- G2 = 2 * G - 1
-   -- Skew the input space to determine which simplex cell we are in.
-   local s = (x + y) * 0.366025403 -- F
+-- @return noise value in the range [-1, +1]
+function simplex2d (x, y)
+   -- 2d skew factors:
+   -- f = (math.sqrt(3) - 1) / 2
+   -- g = (3 - math.sqrt(3)) / 6
+   -- g2 = 2 * g - 1
+   -- skew the input space to determine which simplex cell we are in.
+   local s = (x + y) * 0.366025403 -- f
    local ix, iy = flr(x + s), flr(y + s)
-   -- Unskew the cell origin back to (x, y) space.
-   local t = (ix + iy) * 0.211324865 -- G
+   -- unskew the cell origin back to (x, y) space.
+   local t = (ix + iy) * 0.211324865 -- g
    local x0 = x + t - ix
    local y0 = y + t - iy
-   -- Calculate the contribution from the two fixed corners.
-   -- A step of (1,0) in (i,j) means a step of (1-G,-G) in (x,y), and
-   -- A step of (0,1) in (i,j) means a step of (-G,1-G) in (x,y).
+   -- calculate the contribution from the two fixed corners.
+   -- a step of (1,0) in (i,j) means a step of (1-g,-g) in (x,y), and
+   -- a step of (0,1) in (i,j) means a step of (-g,1-g) in (x,y).
    ix, iy = band(ix, 255), band(iy, 255)
-   local n0 = GetN2d(ix, iy, x0, y0)
-   local n2 = GetN2d(ix + 1, iy + 1, x0 - 0.577350270, y0 - 0.577350270) -- G2
-   -- Determine other corner based on simplex (equilateral triangle) we are in:
+   local n0 = getn2d(ix, iy, x0, y0)
+   local n2 = getn2d(ix + 1, iy + 1, x0 - 0.577350270, y0 - 0.577350270) -- g2
+   -- determine other corner based on simplex (equilateral triangle) we are in:
    -- if x0 > y0 then
    --    ix, x1 = ix + 1, x1 - 1
    -- else
@@ -93,9 +93,9 @@ function Simplex2D (x, y)
    -- local xi = shr(flr(y0 - x0), 31) -- x0 >= y0
    local xi = 0
    if x0 >= y0 then xi = 1 end
-   local n1 = GetN2d(ix + xi, iy + (1 - xi), x0 + 0.211324865 - xi, y0 - 0.788675135 + xi) -- x0 + G - xi, y0 + G - (1 - xi)
-   -- Add contributions from each corner to get the final noise value.
-   -- The result is scaled to return values in the interval [-1,1].
+   local n1 = getn2d(ix + xi, iy + (1 - xi), x0 + 0.211324865 - xi, y0 - 0.788675135 + xi) -- x0 + g - xi, y0 + g - (1 - xi)
+   -- add contributions from each corner to get the final noise value.
+   -- the result is scaled to return values in the interval [-1,1].
    return 70 * (n0 + n1 + n2)
 end
 
@@ -158,13 +158,13 @@ function set_palette_and_get_marching_sprite(tl, tr, bl, br)
         t2 = t1
     end
 
-    -- Remap outline
+    -- remap outline
     pal(11,t2)
 
-    -- Remap outside
+    -- remap outside
     pal(9,t1)
 
-    -- Remap inside
+    -- remap inside
     pal(3,t2)
 
     tl = tl == t2 and 1 or 0
@@ -188,10 +188,11 @@ end
 
 objects = {}
 
-function new_object(x, y)
+function new_object(x, y, sprite_n)
     local object = {};
     object.x = x;
     object.y = y;
+    object.sprite_n = sprite_n;
     return object;
 end
 
@@ -208,7 +209,7 @@ function gen_map()
       local value = 0
       local persistance = .65
       for n=1,octaves do
-        value = value + Simplex2D(noisedx + freq * x,
+        value = value + simplex2d(noisedx + freq * x,
                                   noisedy + freq * y)
         max_amp += amp
         amp *= persistance
@@ -224,8 +225,11 @@ function gen_map()
       if noise_map[x][y] == nil then
         noise_map[x][y] = 1
       end
-      if noise_map[x][y] == 11 then
-        add(objects, new_object(x, y));
+      if noise_map[x][y] == 11 and flr(rnd(10)) == 1 then
+        add(objects, new_object(x, y, 3));
+      end
+      if noise_map[x][y] == 3 and flr(rnd(10)) == 1 then
+        add(objects, new_object(x, y, 4));
       end
     end
   end
@@ -256,7 +260,7 @@ function _draw()
 
     iter_order = {-3, 18, -2, 17, -1, 16, 0, 15, 1, 14, 2, 13, 3, 12, 4, 11, 5, 10, 6, 9, 7, 8}
 
-    -- Draw the marching square tiles
+    -- draw the marching square tiles
     for k1,x in pairs(iter_order) do
       x += flr(camx/8)
       for k2,y in pairs(iter_order) do
@@ -277,9 +281,9 @@ function _draw()
         dx = (x*8 - camx-64) / 64
         dy = (y*8 - camy-64) / 64
 
-        magSq = dx * dx + dy * dy
+        magsq = dx * dx + dy * dy
 
-        scale = -15 * magSq
+        scale = -15 * magsq
 
         dx = dx * scale
         dy = dy * scale
@@ -290,7 +294,8 @@ function _draw()
         spr(n, final_x-4, final_y-4)
       end
     end
-
+		   
+		  pal();
     for obj in all(objects) do
         x = obj.x;
         y = obj.y;
@@ -298,11 +303,11 @@ function _draw()
         dx = (x*8 - camx-64 - 4) / 64
         dy = (y*8 - camy-64 - 4) / 64
 
-        magSq = dx * dx + dy * dy
+        magsq = dx * dx + dy * dy
 
-        if magSq < 1.1 then
+        if magsq < 1.1 then
 
-            scale = -15 * magSq
+            scale = -15 * magsq
 
             dx = dx * scale
             dy = dy * scale
@@ -310,7 +315,7 @@ function _draw()
             final_x = x*8+dx
             final_y = y*8+dy
 
-            spr(0, final_x-8, final_y-8)
+            spr(obj.sprite_n, final_x-8, final_y-8)
 
         end
     end
@@ -320,14 +325,14 @@ function _draw()
     circ(64, 64, 64, 0)
 end
 __gfx__
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000880000007700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000880000007700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000bb0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000bbbb000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0070070000000000000000000000000000b8bb000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000770000008800000077000030000000bbbbbb00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000770000008800000077000003000000bbb8bb00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0070070000000000000000000030030000bbbb000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000400400000440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000333b99999999b3333333333399999999333b99999999b3333333333399999999333b99999999b33333333333999999993333b999999b333333333333
 0000000033b9999999999b3333333333999999993333b9999999b3333333333399999999333b9999999b3333333333339999999933333b9999b3333333333333
 000000003b999999999999b3333333339999999933333b999999b3333333333399999999333b999999b333333333333399999999333333b99b33333333333333
