@@ -186,6 +186,15 @@ for row = 0, map_size do
     end
 end
 
+objects = {}
+
+function new_object(x, y)
+    local object = {};
+    object.x = x;
+    object.y = y;
+    return object;
+end
+
 function gen_map()
   -- generate some terrain
   local noisedx = rnd(1024)
@@ -214,6 +223,9 @@ function gen_map()
       noise_map[x][y] = terrainmap_colors[value]
       if noise_map[x][y] == nil then
         noise_map[x][y] = 1
+      end
+      if noise_map[x][y] == 11 then
+        add(objects, new_object(x, y));
       end
     end
   end
@@ -275,8 +287,32 @@ function _draw()
         final_x = x*8+dx
         final_y = y*8+dy
 
-        spr(n, final_x, final_y)
+        spr(n, final_x-4, final_y-4)
       end
+    end
+
+    for obj in all(objects) do
+        x = obj.x;
+        y = obj.y;
+
+        dx = (x*8 - camx-64 - 4) / 64
+        dy = (y*8 - camy-64 - 4) / 64
+
+        magSq = dx * dx + dy * dy
+
+        if magSq < 1.1 then
+
+            scale = -15 * magSq
+
+            dx = dx * scale
+            dy = dy * scale
+
+            final_x = x*8+dx
+            final_y = y*8+dy
+
+            spr(0, final_x-8, final_y-8)
+
+        end
     end
 
     camera(0,0)
